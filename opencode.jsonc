@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // 15 model free+smart dari katalog localhost:9100 (ai-scraper DB)
+  // isSmart=1 (ctx >=200k / multimodal) + alive=1, urut tercepat
+  // baseURL tetap ke upstream OpenRouter — localhost:9100 hanya katalog,
+  // bukan endpoint inference (tidak ada /v1/chat/completions).
+  "model": "openrouter/nemotron-3-5-lightning-free",
+  "providers": {
+    "openrouter": {
+      "models": {
+        "nemotron-3-5-lightning-free": {
+          "modelID": "nvidia/nemotron-3.5-lightning:free",
+          "name": "NVIDIA: Nemotron 3.5 Lightning (free)",
+          "limit": { "context": 1000000 }
+        }
+      }
+    }
+  }
+}

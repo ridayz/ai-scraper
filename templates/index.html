@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI API Scanner — Find Free AI Endpoints</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #030711;
+      color: #e2e8f0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid #1e293b;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #22d3ee, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .btn-scan {
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #0891b2;
+      color: white;
+    }
+    .btn-scan:hover:not(:disabled) {
+      background: #06b6d4;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+    }
+    .btn-scan:disabled {
+      background: #334155;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    /* Stats */
+    .stats-bar {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .stat-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      min-width: 100px;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .stat-value.green { color: #4ade80; }
+    .stat-value.red { color: #f87171; }
+    .stat-value.blue { color: #60a5fa; }
+    .stat-value.yellow { color: #facc15; }
+    .scan-status {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: #22d3ee;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Filters */
+    .filters {
+      max-width: 1200px;
+      margin: 1rem auto;
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .filter-btn {
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { background: #334155; }
+    .filter-btn.active {
+      background: #0891b2;
+      border-color: #0891b2;
+      color: white;
+    }
+    .filter-count {
+      font-size: 0.7rem;
+      opacity: 0.8;
+      margin-left: 4px;
+    }
+
+    /* Table */
+    .table-container {
+      max-width: 1200px;
+      margin: 0 auto 2rem;
+      padding: 0 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    thead tr {
+      border-bottom: 1px solid #1e293b;
+      background: #1e293b;
+    }
+    th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #1e293b;
+      font-size: 0.875rem;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(34, 211, 238, 0.03); }
+    tr.dead-row td { opacity: 0.4; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .badge-fast { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+    .badge-slow { background: #451a03; color: #facc15; border: 1px solid #92400e; }
+    .badge-dead { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+    .badge-free { background: #052e16; color: #34d399; border: 1px solid #065f46; }
+    .badge-key { background: #431407; color: #fb923c; border: 1px solid #9a3412; }
+    .badge-pending { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+    .badge-unknown { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+    code.endpoint {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.72rem;
+      background: #0c4a6e;
+      color: #7dd3fc;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+
+    /* Legend */
+    .legend {
+      max-width: 1200px;
+      margin: 0 auto 2rem;
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+    .legend span::before {
+      content: "● ";
+      margin-right: 4px;
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 3rem;
+      color: #475569;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .stats-bar { gap: 0.5rem; }
+      .stat-card { min-width: 80px; padding: 0.4rem 0.75rem; }
+      table { font-size: 0.8rem; }
+      th, td { padding: 0.5rem 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="header-top">
+        <div>
+          <h1>🤖 AI API Scanner</h1>
+          <div class="subtitle">Auto-discover & benchmark free AI endpoints</div>
+          <div id="credStatus" style="font-size:0.7rem; color:#64748b; margin-top:4px;"></div>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+          <button onclick="openSettings()" style="padding:0.6rem 1rem; border-radius:8px; font-size:0.875rem; font-weight:600; border:1px solid #334155; background:#1e293b; color:#94a3b8; cursor:pointer;">⚙️ Settings</button>
+          <button id="scanBtn" class="btn-scan" onclick="startScan()">
+            🔄 Scan Now
+          </button>
+        </div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-label">Total Found</div>
+          <div class="stat-value blue" id="statTotal">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Alive ✅</div>
+          <div class="stat-value green" id="statAlive">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Dead ❌</div>
+          <div class="stat-value red" id="statDead">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Speed</div>
+          <div class="stat-value yellow" id="statSpeed">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🧠 Smart Free</div>
+          <div class="stat-value" style="color:#34d399;" id="statSmart">—</div>
+        </div>
+        <div id="scanStatus" style="margin-left:auto; font-size:0.8rem; color:#22d3ee;"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">
+      All<span class="filter-count" id="countAll"></span>
+    </button>
+    <button class="filter-btn" data-filter="smart" onclick="setFilter('smart')">
+      🧠 Smart Free<span class="filter-count" id="countSmart"></span>
+    </button>
+    <button class="filter-btn" data-filter="alive" onclick="setFilter('alive')">
+      Alive ✅<span class="filter-count" id="countAlive"></span>
+    </button>
+    <button class="filter-btn" data-filter="dead" onclick="setFilter('dead')">
+      Dead ❌<span class="filter-count" id="countDead"></span>
+    </button>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Endpoint</th>
+          <th>API Key</th>
+          <th>Source</th>
+          <th>Speed</th>
+          <th>Response Time</th>
+          <th>Benchmark ⭐</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="8" class="empty">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span style="color:#4ade80;">FAST &lt; 1s</span>
+    <span style="color:#facc15;">SLOW ≥ 1s</span>
+    <span style="color:#f87171;">DEAD Not responding</span>
+    <span style="color:#34d399;">FREE No key</span>
+    <span style="color:#fb923c;">KEY REQ Requires API key</span>
+  </div>
+
+  <script>
+    let allEntries = [];
+    let currentFilter = 'all';
+
+    async function load() {
+      const initData = typeof __INITIAL_JSON__ !== 'undefined' ? __INITIAL_JSON__ : null;
+      if (initData && initData.entries && initData.entries.length > 0) {
+        allEntries = initData.entries;
+        updateStats(initData.stats);
+        renderTable();
+        return;
+      }
+      try {
+        const res = await fetch('/api/scan');
+        const data = await res.json();
+        allEntries = data.entries;
+        updateStats(data.stats);
+        renderTable();
+      } catch (e) {
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="empty">Error loading data</td></tr>';
+      }
+    }
+
+    async function startScan() {
+      const btn = document.getElementById('scanBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Scanning...';
+      await fetch('/api/scan/manual', { method: 'POST' });
+      const poll = setInterval(async () => {
+        try {
+          const res = await fetch('/api/scan');
+          const data = await res.json();
+          allEntries = data.entries;
+          updateStats(data.stats);
+          renderTable();
+          if (!data.stats.scanning) { clearInterval(poll); btn.disabled = false; btn.textContent = '🔄 Refresh Now'; }
+        } catch(e) {}
+      }, 3000);
+    }
+
+    function updateStats(s) {
+      document.getElementById('statTotal').textContent = s.totalDiscovered || 0;
+      document.getElementById('statAlive').textContent = s.aliveCount || 0;
+      document.getElementById('statDead').textContent = s.deadCount || 0;
+      document.getElementById('statSpeed').textContent = s.avgResponseTime ? s.avgResponseTime + 'ms' : '—';
+      const smartCount = allEntries.filter(e => e.alive === true && e.apiKey === 'free' && e.isSmart).length;
+      document.getElementById('countSmart').textContent = '(' + smartCount + ')';
+      document.getElementById('statSmart').textContent = smartCount;
+      const statusEl = document.getElementById('scanStatus');
+      if (s.scanning) {
+        statusEl.textContent = s.progress || 'Scanning...';
+        statusEl.style.animation = 'pulse 1.5s infinite';
+      } else if (s.lastScanAt) {
+        statusEl.textContent = 'Last scan: ' + new Date(s.lastScanAt).toLocaleTimeString();
+        statusEl.style.animation = 'none';
+      } else {
+        statusEl.textContent = '';
+      }
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === f);
+      });
+      renderTable();
+    }
+
+    function renderTable() {
+      const filtered = allEntries.filter(e => {
+        if (currentFilter === 'alive') return e.alive === true;
+        if (currentFilter === 'dead') return e.alive === false;
+        if (currentFilter === 'smart') return e.alive === true && e.apiKey === 'free' && e.isSmart;
+        return true;
+      });
+
+      document.getElementById('countAll').textContent = '(' + allEntries.length + ')';
+      document.getElementById('countAlive').textContent = '(' + allEntries.filter(e => e.alive === true).length + ')';
+      document.getElementById('countDead').textContent = '(' + allEntries.filter(e => e.alive === false).length + ')';
+      const smartCount = allEntries.filter(e => e.alive === true && e.apiKey === 'free' && e.isSmart).length;
+      document.getElementById('countSmart').textContent = '(' + smartCount + ')';
+      document.getElementById('statSmart').textContent = smartCount;
+
+      const tbody = document.getElementById('tableBody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">No entries match this filter.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(e => `
+        <tr class="${e.alive === false ? 'dead-row' : ''}">
+          <td><strong>${escHtml(e.modelName)}</strong></td>
+          <td><code class="endpoint">${escHtml(e.endpoint)}</code></td>
+          <td>${apiBadge(e.apiKey)}</td>
+          <td style="color:#64748b; font-size:0.75rem;">${escHtml(e.source)}</td>
+          <td>${speedBadge(e.speedLabel, e.alive)}</td>
+          <td style="font-family:monospace; color:#cbd5e1; font-size:0.8rem;">${fmtTime(e.responseTime)}</td>
+          <td style="color:#94a3b8; font-size:0.75rem;">${e.benchmarkScore > 0 ? '⭐ '+e.benchmarkScore.toFixed(1) : '—'}</td>
+          <td>${statusBadge(e.alive)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function apiBadge(key) {
+      if (key === 'free') return '<span class="badge badge-free">FREE</span>';
+      if (key === 'no-key') return '<span class="badge badge-free">NO KEY</span>';
+      return '<span class="badge badge-key">KEY REQ</span>';
+    }
+
+    function speedBadge(label, alive) {
+      if (alive === false) return '<span class="badge badge-dead">DEAD</span>';
+      if (label === 'fast') return '<span class="badge badge-fast">FAST</span>';
+      if (label === 'slow') return '<span class="badge badge-slow">SLOW</span>';
+      return '<span class="badge badge-unknown">—</span>';
+    }
+
+    function statusBadge(alive) {
+      if (alive === true) return '<span style="color:#4ade80;">✅ Alive</span>';
+      if (alive === false) return '<span style="color:#f87171;">❌ Dead</span>';
+      return '<span style="color:#64748b;">⏳ Pending</span>';
+    }
+
+    function fmtTime(ms) {
+      if (ms === null || ms === undefined) return '—';
+      return ms + ' ms';
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Auto-refresh every 10s
+    setInterval(async () => {
+      try {
+        const res = await fetch('/api/scan');
+        const data = await res.json();
+        updateStats(data.stats);
+        if (data.entries.length !== allEntries.length || currentFilter !== 'all') {
+          allEntries = data.entries;
+          renderTable();
+        }
+      } catch(e) {}
+    }, 10000);
+
+    // Init
+    load();
+  </script><script>const __INITIAL_JSON__ = {"entries":[],"stats":{}};</script>
+</body>
+</html>
